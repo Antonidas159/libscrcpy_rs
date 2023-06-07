@@ -1,0 +1,4 @@
+enum DeviceMessage{
+    ClipBoard,
+    AckClipBoard,
+}

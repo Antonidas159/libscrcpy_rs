@@ -1,0 +1,10 @@
+[package]
+name = "libscrcpy"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bitflags = "2.3.1"
+rusty_ffmpeg = "0.13.1"
