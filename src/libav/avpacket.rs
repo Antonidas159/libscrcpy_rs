@@ -36,21 +36,21 @@ impl AVPacket{
         }
     }
     #[inline]
-    pub fn set_flags(&mut self, flags: i32){
+    pub fn set_flags(&mut self, flags: u32){
         unsafe {
-            (*self.0).flags |= flags
+            (*self.0).flags |= flags as i32
         }
     }
     #[inline]
-    pub fn unset_flags(&mut self, flags: i32){
+    pub fn unset_flags(&mut self, flags: u32){
         unsafe {
-            (*self.0).flags &= flags
+            (*self.0).flags &= flags as i32
         }
     }
     #[inline]
-    pub fn get_flags(&mut self)->i32{
+    pub fn get_flags(&mut self)->u32{
         unsafe {
-            (*self.0).flags
+            (*self.0).flags as u32
         }
     }
     

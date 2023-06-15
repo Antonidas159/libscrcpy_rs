@@ -9,7 +9,7 @@ use rusty_ffmpeg::ffi::{
     AVCodecID_AV_CODEC_ID_OPUS, 
     AVCodecID_AV_CODEC_ID_AAC, 
     AVCodecID_AV_CODEC_ID_PCM_S16LE, 
-    AVCodecID_AV_CODEC_ID_NONE, AV_NOPTS_VALUE, AV_PKT_FLAG_KEY, 
+    AVCodecID_AV_CODEC_ID_NONE, AV_NOPTS_VALUE, AV_PKT_FLAG_KEY, AV_CODEC_FLAG_LOW_DELAY, AVMediaType_AVMEDIA_TYPE_VIDEO, AVPixelFormat_AV_PIX_FMT_YUV420P, 
 };
 
 use crate::libav::{AVPacket, AVCodec};
@@ -49,14 +49,14 @@ impl Demuxer {
 
         Ok(decode_codec_id(sc_codec_id))
     }
-    pub fn read_viceo_size(&mut self)-> Result<(u32,u32), std::io::Error>{
+    pub fn read_viceo_size(&mut self)-> Result<(i32,i32), std::io::Error>{
         let mut x = [0u8;4];
         let mut y = [0u8;4];
         self.socket.read_exact(&mut x)?;
         self.socket.read_exact(&mut y)?;
-        let h = u32::from_be_bytes(x);
-        let w = u32::from_be_bytes(y);
-        Ok((h,w))
+        let h = i32::from_be_bytes(x);
+        let w = i32::from_be_bytes(y);
+        Ok((w, h))
     }
     pub fn read_packet(&mut self)->Result<AVPacket, std::io::Error>{
         let mut header = [0u8;SC_PACKET_HEADER_SIZE];
@@ -75,7 +75,7 @@ impl Demuxer {
             packet.set_pts((pts_flags&SC_PACKET_PTS_MASK).try_into().unwrap())
         }
         if (pts_flags&SC_PACKET_FLAG_KEY_FRAME) !=0 {
-            packet.set_flags(AV_PKT_FLAG_KEY.try_into().unwrap())
+            packet.set_flags(AV_PKT_FLAG_KEY)
         }
         packet.set_dts(packet.get_pts());
         Ok(packet)
@@ -86,6 +86,23 @@ impl Demuxer {
             return Err(Error::new(std::io::ErrorKind::Other, "No / unknown codec id"));
         }
         let codec = AVCodec::find_decoder(codec_id);
+        if codec.is_none(){
+            return Err(Error::new(std::io::ErrorKind::Other, "Unable to find codec"));
+        }
+        let codec = codec.unwrap();
+        let mut codec_ctx = codec.alloc_context3().expect("OOM?");
+        codec_ctx.set_flags(AV_CODEC_FLAG_LOW_DELAY);
+        if codec.get_type() == AVMediaType_AVMEDIA_TYPE_VIDEO{
+            let size = self.read_viceo_size()?;
+            codec_ctx.set_width(size.0);
+            codec_ctx.set_height(size.1);
+            codec_ctx.set_pixel_format(AVPixelFormat_AV_PIX_FMT_YUV420P);
+        }
+        else {
+            todo!("audio channel");
+            codec_ctx.set_sample_rate(48000);
+        }
+        todo!();
         Ok(())
     }
 }
